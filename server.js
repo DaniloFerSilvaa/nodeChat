@@ -12,8 +12,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 let connectedUsers = [];
 
+
 io.on('connection', (socket) => {
      console.log('Conecxão detectada...');
+     console.log('CONNECT: ', connectedUsers)
+     
+     socket.emit('emit-list', connectedUsers);
 
      socket.on('join-request', (username) => {
           socket.username = username;
@@ -38,4 +42,12 @@ io.on('connection', (socket) => {
           })
      })
 
+     socket.on('msg-request', (txt) => {
+          let obj = {
+               username: socket.username,
+               message: txt
+          }
+          //socket.emit('show-msg', obj);
+          socket.broadcast.emit('show-msg', obj);
+     })
 });

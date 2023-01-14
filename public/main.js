@@ -29,22 +29,34 @@ function addMessage(type, user, msg) {
                ul.innerHTML += '<li class="msg-auto">'+msg+'</li>'
                break
           case 'msg':
-               ul.innerHTML += '<li><span>'+user+'</span>'+msg+'</li>'
+               if(username == user) {
+                    ul.innerHTML += '<li><span class="nick-user me">'+user+'</span> '+msg+'</li>'
+               } else {
+               ul.innerHTML += '<li><span class="nick-user">'+user+'</span> '+msg+'</li>'
+               }
                break
      }
-
+     ul.scrollTop = ul.scrollHeight;
 }
+
+
 
 //APARTIR DO LOGIN
 loginInput.addEventListener('keyup', (e) => {
      if (e.keyCode === 13) {
-           let name = loginInput.value.trim();
-           if (name != "") {
-               username = name;
-               document.title = `Chat (${username})`;
-
-               socket.emit('join-request', username);
-           }
+          let name = loginInput.value.trim();
+          
+          socket.on('emit-list', (list)=>{
+               userList = list;
+               console.log('USERLIST: ', userList)
+          });
+          let lowerCaseList = userList.map((e) => { return e.toLowerCase() });
+          let TrueOrFalse = lowerCaseList.includes(name.toLowerCase())
+          if (name != "" && TrueOrFalse === false) {
+          username = name;
+          document.title = `Chat (${username})`;
+          socket.emit('join-request', username);
+          }
      }
 });
 
@@ -72,4 +84,35 @@ socket.on('list-update', (data) => {
      renderUserList();
 });
 
+chatInput.addEventListener('keyup', (e) => {
+     if (e.keyCode === 13) {
+           let txt = chatInput.value.trim();
+           chatInput.value = '';
 
+           if (txt != "") {
+               addMessage('msg', username, txt);
+               socket.emit('msg-request', txt)
+           }
+     }
+});
+
+socket.on('show-msg', (data) => {
+     addMessage('msg', data.username, data.message);
+});
+
+socket.on('disconnect', () => {
+     addMessage('status', null, 'Você foi desconectado');
+     userList = [];
+     renderUserList();
+});
+
+socket.io.on('reconnect_error', () => {
+     addMessage('status', null, 'Tentando reconnectar');
+});
+
+socket.io.on('reconnect', () => {
+     addMessage('status', null, 'Reconectado!');
+     if (username != '') {
+          socket.emit('join-request', username);
+     }
+});
